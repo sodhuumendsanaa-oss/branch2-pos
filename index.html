@@ -3,374 +3,626 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Салбар 2 - Кассын Шилжүүлэг Хянах</title>
-  
-  <!-- Google Fonts & Tailwind CSS CDN -->
+  <meta name="theme-color" content="#0a0a0f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Салбар 2 - Касс</title>
+  <link rel="manifest" href="manifest.json" />
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-  <!-- Firebase App & Realtime Database SDKs (Compat for single-file simplicity) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            surface: { 50: '#f8fafc', 100: '#111119', 200: '#16161f', 300: '#1c1c27', 400: '#242430', 500: '#2a2a38' },
+            brand: { 400: '#34d399', 500: '#10b981', 600: '#059669' }
+          }
+        }
+      }
+    }
+  </script>
+
   <style>
-    body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      -webkit-tap-highlight-color: transparent;
+    * { -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #0a0a0f; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 99px; }
+
+    /* Animations */
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(24px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
-    @keyframes pulse-highlight {
-      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); }
-      50% { transform: scale(1.02); box-shadow: 0 0 25px 8px rgba(34, 197, 94, 0.4); }
-      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    @keyframes glowPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+      50% { box-shadow: 0 0 32px 4px rgba(16, 185, 129, 0.3); }
     }
-    .new-card-anim {
-      animation: pulse-highlight 1.2s ease-out;
+    @keyframes countUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes ripple {
+      0% { transform: scale(0.8); opacity: 1; }
+      100% { transform: scale(2.4); opacity: 0; }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .anim-slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .anim-glow { animation: glowPulse 2s ease-in-out; }
+    .anim-count { animation: countUp 0.4s ease-out forwards; }
+    .anim-fade { animation: fadeIn 0.3s ease-out forwards; }
+
+    /* Glass effect */
+    .glass { background: rgba(22, 22, 31, 0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+
+    /* Gradient text */
+    .gradient-text {
+      background: linear-gradient(135deg, #34d399, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Tab styles */
+    .tab-active { color: #10b981; border-color: #10b981; }
+    .tab-inactive { color: #64748b; border-color: transparent; }
+    .tab-inactive:hover { color: #94a3b8; }
+
+    /* Card hover */
+    .order-card {
+      transition: all 0.2s ease;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+    .order-card:hover {
+      border-color: rgba(255,255,255,0.08);
+      background: rgba(28, 28, 39, 0.9);
+    }
+
+    /* Status indicator pulse */
+    .status-pulse { position: relative; }
+    .status-pulse::after {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      border: 2px solid rgba(16, 185, 129, 0.4);
+      animation: ripple 2s infinite;
+    }
+
+    /* Number counter */
+    .mono-num { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+
+    /* Bottom nav for mobile */
+    .bottom-nav {
+      padding-bottom: env(safe-area-inset-bottom, 8px);
+    }
+
+    /* Date picker pill */
+    .date-pill {
+      transition: all 0.2s ease;
+    }
+    .date-pill.active {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.3);
     }
   </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-emerald-500 selection:text-white">
 
-  <!-- Top Navigation Bar -->
-  <header class="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 py-3 sm:px-6">
-    <div class="max-w-4xl mx-auto flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="relative flex h-3 w-3">
-          <span id="pingDot" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-          <span id="statusDot" class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-        </div>
-        <div>
-          <h1 class="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
-            Салбар 2 - Касс
-            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">LIVE</span>
-          </h1>
-          <p id="connectionStatus" class="text-xs text-slate-400">Холбогдож байна...</p>
-        </div>
-      </div>
+<body class="text-slate-100 min-h-screen flex flex-col">
 
-      <!-- Action Buttons -->
-      <div class="flex items-center gap-2">
-        <button id="soundToggleBtn" onclick="toggleSound()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition shadow-sm">
-          <span id="soundIcon">🔔</span>
-          <span id="soundStatusText">Дуу: Идэвхтэй</span>
-        </button>
-        <button onclick="openConfigModal()" class="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Тохиргоо">
-          ⚙️
-        </button>
+  <!-- ===== HEADER ===== -->
+  <header class="sticky top-0 z-50 glass border-b border-white/5">
+    <div class="max-w-2xl mx-auto px-4 py-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <!-- Live Status Dot -->
+          <div class="relative">
+            <div id="statusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 status-pulse"></div>
+          </div>
+          <div>
+            <h1 class="text-sm font-bold text-white tracking-tight">Салбар 2</h1>
+            <p id="connectionStatus" class="text-[10px] text-slate-500 font-medium">Холбогдож байна...</p>
+          </div>
+        </div>
+
+        <!-- Right Actions -->
+        <div class="flex items-center gap-1">
+          <button onclick="toggleSound()" id="soundBtn" class="p-2 rounded-xl hover:bg-white/5 transition text-lg" title="Дуу">
+            🔔
+          </button>
+          <button onclick="requestNotifPermission()" id="notifBtn" class="p-2 rounded-xl hover:bg-white/5 transition text-lg" title="Мэдэгдэл">
+            📳
+          </button>
+          <button onclick="openConfigModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-white/10 bg-white/5 transition text-xs font-semibold text-slate-300 border border-white/5">
+            ⚙️ Тохиргоо
+          </button>
+        </div>
       </div>
     </div>
   </header>
 
-  <!-- Main Content Area -->
-  <main class="flex-1 max-w-4xl w-full mx-auto px-4 py-6 sm:px-6">
-    
-    <!-- Daily Summary Cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
-      <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3.5 sm:p-4 shadow-sm">
-        <div class="text-xs font-medium text-slate-400 mb-1">Нийт гүйлгээ (Өнөөдөр)</div>
-        <div id="summaryCount" class="text-2xl sm:text-3xl font-bold text-white">0</div>
-      </div>
-      <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3.5 sm:p-4 shadow-sm">
-        <div class="text-xs font-medium text-slate-400 mb-1">Нийт дүн</div>
-        <div id="summaryAmount" class="text-2xl sm:text-3xl font-bold text-emerald-400">₮0</div>
-      </div>
-      <div class="col-span-2 sm:col-span-1 bg-slate-800/60 border border-slate-700/60 rounded-xl p-3.5 sm:p-4 shadow-sm flex items-center justify-between sm:block">
-        <div class="text-xs font-medium text-slate-400 mb-1">Сүүлийн шилжүүлэг</div>
-        <div id="lastTxTime" class="text-sm sm:text-base font-semibold text-slate-200">Одоогоор алга</div>
+  <!-- ===== MAIN ===== -->
+  <main class="flex-1 max-w-2xl w-full mx-auto px-4 pt-5 pb-24">
+
+    <!-- Notification Permission Banner -->
+    <div id="notifBanner" class="hidden mb-4 rounded-2xl bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 p-4 anim-fade">
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">🔔</span>
+          <div>
+            <div class="text-xs font-bold text-white">Push мэдэгдэл идэвхжүүлэх</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">Цонх багасгасан байсан ч шинэ шилжүүлэг ирэхэд мэдэгдэл харуулна</div>
+          </div>
+        </div>
+        <button onclick="requestNotifPermission()" class="shrink-0 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-[11px] font-bold text-white transition shadow-lg shadow-indigo-900/30">
+          Зөвшөөрөх
+        </button>
       </div>
     </div>
 
-    <!-- Section Header -->
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Шилжүүлгийн түүх</h2>
-      <button onclick="testPaymentSound()" class="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition">
-        ▶️ Хонх турших
+    <!-- Summary Hero Card -->
+    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-surface-300 to-surface-200 border border-white/5 p-5 mb-5">
+      <!-- Decorative gradient orb -->
+      <div class="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none"></div>
+
+      <div class="relative z-10">
+        <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-2" id="summaryDateLabel">Өнөөдөр</div>
+        <div class="flex items-end gap-3 mb-4">
+          <div id="summaryAmount" class="text-4xl sm:text-5xl font-black gradient-text mono-num">₮0</div>
+        </div>
+
+        <!-- Mini Stats Row -->
+        <div class="grid grid-cols-3 gap-3">
+          <div class="bg-white/[0.03] rounded-xl px-3 py-2.5">
+            <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Гүйлгээ</div>
+            <div id="summaryCount" class="text-lg font-bold text-white mono-num mt-0.5">0</div>
+          </div>
+          <div class="bg-white/[0.03] rounded-xl px-3 py-2.5">
+            <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Тулгасан</div>
+            <div id="summaryConfirmed" class="text-lg font-bold text-emerald-400 mono-num mt-0.5">0</div>
+          </div>
+          <div class="bg-white/[0.03] rounded-xl px-3 py-2.5">
+            <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Хүлээж буй</div>
+            <div id="summaryPending" class="text-lg font-bold text-amber-400 mono-num mt-0.5">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Date Selector (Horizontal Scroll) -->
+    <div class="mb-5">
+      <div id="dateScroller" class="flex gap-2 overflow-x-auto pb-2 no-scrollbar" style="scrollbar-width: none;">
+        <!-- JS will fill date pills here -->
+      </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="flex gap-1 mb-4 border-b border-white/5">
+      <button id="tabAll" onclick="switchTab('all')" class="px-4 py-2.5 text-xs font-semibold border-b-2 transition tab-active">
+        Бүгд
+      </button>
+      <button id="tabPending" onclick="switchTab('pending')" class="px-4 py-2.5 text-xs font-semibold border-b-2 transition tab-inactive">
+        Хүлээж буй
+      </button>
+      <button id="tabConfirmed" onclick="switchTab('confirmed')" class="px-4 py-2.5 text-xs font-semibold border-b-2 transition tab-inactive">
+        Тулгасан ✓
       </button>
     </div>
 
-    <!-- Orders Feed Container -->
-    <div id="ordersList" class="space-y-3">
-      <!-- Loading Skeleton -->
-      <div id="emptyState" class="text-center py-16 px-4 rounded-2xl border border-dashed border-slate-800 bg-slate-800/20">
-        <div class="text-4xl mb-3">📲</div>
-        <h3 class="text-base font-semibold text-slate-300 mb-1">Шилжүүлэг хүлээж байна</h3>
-        <p class="text-xs text-slate-500 max-w-sm mx-auto">
-          Үндсэн утсан дээр банкны орлого орж ирмэгц энэ дэлгэц дээр автоматаар дуу дуугарч, шууд гарч ирнэ.
+    <!-- Orders Feed -->
+    <div id="ordersList" class="space-y-2.5">
+      <div id="emptyState" class="text-center py-20 anim-fade">
+        <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-surface-300 flex items-center justify-center text-3xl">📲</div>
+        <h3 class="text-sm font-semibold text-slate-300 mb-1">Шилжүүлэг хүлээж байна</h3>
+        <p class="text-xs text-slate-600 max-w-xs mx-auto leading-relaxed">
+          Банкны орлого орж ирмэгц автоматаар дуу дуугарч, шууд энд гарч ирнэ.
         </p>
+        <button onclick="playCashierChime()" class="mt-4 px-4 py-2 rounded-xl bg-surface-400 text-xs font-semibold text-slate-300 hover:bg-surface-500 transition">
+          🔊 Хонх турших
+        </button>
       </div>
     </div>
 
   </main>
 
-  <!-- Configuration Modal -->
-  <div id="configModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl">
-      <h3 class="text-lg font-bold text-white mb-2">Firebase Тохиргоо</h3>
-      <p class="text-xs text-slate-400 mb-4">
-        Firebase Console-оос Realtime Database URL болон төслийн мэдээллээ оруулна уу. (Хөтөч дээр хадгалагдана)
-      </p>
+  <!-- ===== CONFIGURATION MODAL ===== -->
+  <div id="configModal" class="fixed inset-0 z-[60] bg-black/80 backdrop-blur-md hidden items-center justify-center p-4" style="display:none;">
+    <div class="bg-surface-300 border border-white/10 rounded-2xl max-w-sm w-full p-5 shadow-2xl anim-slide-up">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-bold text-white">⚙️ Тохиргоо</h3>
+        <button onclick="closeConfigModal()" class="text-slate-500 hover:text-white transition text-lg">✕</button>
+      </div>
 
       <div class="space-y-3">
         <div>
-          <label class="block text-xs font-medium text-slate-300 mb-1">Database URL (*Чухал)</label>
-          <input id="cfgDbUrl" type="text" placeholder="https://your-project-default-rtdb.firebaseio.com" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500" />
+          <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Firebase Database URL</label>
+          <input id="cfgDbUrl" type="text" placeholder="https://your-project-default-rtdb.firebasedatabase.app" class="w-full bg-surface-100 border border-white/5 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition" />
         </div>
         <div>
-          <label class="block text-xs font-medium text-slate-300 mb-1">Project ID</label>
-          <input id="cfgProjectId" type="text" placeholder="my-branch-app" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500" />
+          <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Project ID</label>
+          <input id="cfgProjectId" type="text" placeholder="my-branch-app" class="w-full bg-surface-100 border border-white/5 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition" />
         </div>
       </div>
 
-      <div class="flex justify-end gap-2 mt-6">
-        <button onclick="closeConfigModal()" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white bg-slate-700/50 hover:bg-slate-700 transition">Хаах</button>
-        <button onclick="saveConfig()" class="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 transition">Хадгалах</button>
+      <div class="flex gap-2 mt-5">
+        <button onclick="closeConfigModal()" class="flex-1 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 bg-white/5 hover:bg-white/10 transition">Хаах</button>
+        <button onclick="saveConfig()" class="flex-1 px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 transition shadow-lg shadow-emerald-900/30">Хадгалах</button>
       </div>
     </div>
   </div>
 
+  <!-- ===== FULL SCREEN NEW PAYMENT OVERLAY ===== -->
+  <div id="newPaymentOverlay" class="fixed inset-0 z-[55] bg-black/90 backdrop-blur-lg hidden items-center justify-center p-6" style="display:none;">
+    <div class="text-center anim-slide-up">
+      <div class="text-6xl mb-4">💰</div>
+      <div class="text-sm font-semibold text-emerald-400 uppercase tracking-widest mb-2">Шинэ орлого!</div>
+      <div id="overlayAmount" class="text-5xl sm:text-6xl font-black gradient-text mono-num mb-3">₮0</div>
+      <div id="overlayRemark" class="text-base text-slate-300 font-medium mb-8">-</div>
+      <button onclick="dismissOverlay()" class="px-8 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-sm font-bold text-white transition shadow-xl shadow-emerald-900/40">
+        Ойлголоо ✓
+      </button>
+    </div>
+  </div>
+
   <script>
-    // --- Default / Saved Firebase Configurations ---
-    const DEFAULT_CONFIG = {
+    // ═══════════════════════════════════════════
+    //  CONFIGURATION
+    // ═══════════════════════════════════════════
+    const CONFIG = {
       databaseURL: localStorage.getItem('fb_db_url') || "https://branch2-pos-default-rtdb.asia-southeast1.firebasedatabase.app",
       projectId: localStorage.getItem('fb_project_id') || "branch2-pos"
     };
 
+    // ═══════════════════════════════════════════
+    //  STATE
+    // ═══════════════════════════════════════════
     let audioContext = null;
     let isSoundEnabled = true;
     let isFirstLoad = true;
-    let transactions = {};
+    let allTransactions = {};   // all data keyed by Firebase ID
+    let currentTab = 'all';
+    let selectedDate = todayStr();
 
-    // Web Audio API Synthesized Ding (No external mp3 needed, instant & 0 latency)
+    function todayStr() {
+      return new Date().toISOString().slice(0, 10); // "2026-09-10"
+    }
+
+    // ═══════════════════════════════════════════
+    //  AUDIO: Cashier Chime (Web Audio API)
+    // ═══════════════════════════════════════════
     function playCashierChime() {
       if (!isSoundEnabled) return;
       try {
-        if (!audioContext) {
-          audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioContext.state === 'suspended') {
-          audioContext.resume();
-        }
-
+        if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioContext.state === 'suspended') audioContext.resume();
         const now = audioContext.currentTime;
 
-        // Note 1: Bright Bell (C6 - 1046.5 Hz)
-        const osc1 = audioContext.createOscillator();
-        const gain1 = audioContext.createGain();
-        osc1.type = 'sine';
-        osc1.frequency.setValueAtTime(1046.5, now);
-        gain1.gain.setValueAtTime(0.4, now);
-        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-        osc1.connect(gain1);
-        gain1.connect(audioContext.destination);
-        osc1.start(now);
-        osc1.stop(now + 0.6);
+        // Three-note ascending chime: C6 → E6 → G6
+        const notes = [
+          { freq: 1046.5, delay: 0,    dur: 0.5, vol: 0.3 },
+          { freq: 1318.5, delay: 0.1,  dur: 0.5, vol: 0.35 },
+          { freq: 1568.0, delay: 0.22, dur: 0.7, vol: 0.3 }
+        ];
 
-        // Note 2: Harmonic Chime (E6 - 1318.5 Hz) 120ms later
-        const osc2 = audioContext.createOscillator();
-        const gain2 = audioContext.createGain();
-        osc2.type = 'sine';
-        osc2.frequency.setValueAtTime(1318.5, now + 0.12);
-        gain2.gain.setValueAtTime(0.5, now + 0.12);
-        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
-        osc2.connect(gain2);
-        gain2.connect(audioContext.destination);
-        osc2.start(now + 0.12);
-        osc2.stop(now + 0.9);
-
-      } catch (err) {
-        console.warn("Audio chime failed: ", err);
-      }
+        notes.forEach(n => {
+          const osc = audioContext.createOscillator();
+          const gain = audioContext.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(n.freq, now + n.delay);
+          gain.gain.setValueAtTime(n.vol, now + n.delay);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + n.delay + n.dur);
+          osc.connect(gain);
+          gain.connect(audioContext.destination);
+          osc.start(now + n.delay);
+          osc.stop(now + n.delay + n.dur);
+        });
+      } catch (e) { console.warn("Audio error:", e); }
     }
 
     function toggleSound() {
       isSoundEnabled = !isSoundEnabled;
-      const icon = document.getElementById('soundIcon');
-      const text = document.getElementById('soundStatusText');
-      if (isSoundEnabled) {
-        icon.innerText = '🔔';
-        text.innerText = 'Дуу: Идэвхтэй';
-        playCashierChime();
-      } else {
-        icon.innerText = '🔕';
-        text.innerText = 'Дуу: Хаалттай';
-      }
+      const btn = document.getElementById('soundBtn');
+      btn.innerText = isSoundEnabled ? '🔔' : '🔕';
+      if (isSoundEnabled) playCashierChime();
     }
 
-    function testPaymentSound() {
-      playCashierChime();
+    // ═══════════════════════════════════════════
+    //  DATE HELPERS
+    // ═══════════════════════════════════════════
+    function getDateStr(date) { return date.toISOString().slice(0, 10); }
+
+    function getTransactionDate(tx) {
+      if (!tx.timestamp) return todayStr();
+      return new Date(tx.timestamp).toISOString().slice(0, 10);
     }
 
-    // --- Firebase Initialization ---
+    function formatDateLabel(dateStr) {
+      const d = new Date(dateStr + 'T00:00:00');
+      const today = todayStr();
+      const yesterday = getDateStr(new Date(Date.now() - 86400000));
+      if (dateStr === today) return 'Өнөөдөр';
+      if (dateStr === yesterday) return 'Өчигдөр';
+      const months = ['1-р сар','2-р сар','3-р сар','4-р сар','5-р сар','6-р сар','7-р сар','8-р сар','9-р сар','10-р сар','11-р сар','12-р сар'];
+      return `${months[d.getMonth()]} ${d.getDate()}`;
+    }
+
+    function renderDatePills() {
+      const container = document.getElementById('dateScroller');
+      container.innerHTML = '';
+
+      // Collect unique dates from transactions
+      const dates = new Set();
+      dates.add(todayStr()); // Always include today
+      Object.values(allTransactions).forEach(tx => {
+        dates.add(getTransactionDate(tx));
+      });
+
+      // Sort descending (newest first)
+      const sorted = [...dates].sort((a, b) => b.localeCompare(a));
+
+      sorted.forEach(dateStr => {
+        const pill = document.createElement('button');
+        pill.className = `date-pill shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition ${dateStr === selectedDate ? 'active' : 'bg-surface-300 text-slate-400 border-white/5 hover:border-white/10'}`;
+        pill.innerText = formatDateLabel(dateStr);
+        pill.onclick = () => selectDate(dateStr);
+        container.appendChild(pill);
+      });
+    }
+
+    function selectDate(dateStr) {
+      selectedDate = dateStr;
+      renderDatePills();
+      renderAllCards();
+      updateSummary();
+    }
+
+    // ═══════════════════════════════════════════
+    //  TAB SWITCHING
+    // ═══════════════════════════════════════════
+    function switchTab(tab) {
+      currentTab = tab;
+      ['All', 'Pending', 'Confirmed'].forEach(t => {
+        const el = document.getElementById('tab' + t);
+        el.className = el.className.replace(/tab-(active|inactive)/g, '') + (t.toLowerCase() === tab ? ' tab-active' : ' tab-inactive');
+      });
+      renderAllCards();
+    }
+
+    // ═══════════════════════════════════════════
+    //  FIREBASE INIT
+    // ═══════════════════════════════════════════
     function initFirebase() {
-      const cfg = {
-        databaseURL: DEFAULT_CONFIG.databaseURL,
-        projectId: DEFAULT_CONFIG.projectId
-      };
-
       try {
         if (!firebase.apps.length) {
-          firebase.initializeApp(cfg);
+          firebase.initializeApp({ databaseURL: CONFIG.databaseURL, projectId: CONFIG.projectId });
         }
 
         const db = firebase.database();
         const connectionRef = db.ref(".info/connected");
         const ordersRef = db.ref("branch2_orders");
 
-        // Monitor Connection State
-        connectionRef.on("value", (snap) => {
-          const isConnected = snap.val() === true;
-          const statusText = document.getElementById('connectionStatus');
-          const pingDot = document.getElementById('pingDot');
-          const statusDot = document.getElementById('statusDot');
+        // Connection status
+        connectionRef.on("value", snap => {
+          const connected = snap.val() === true;
+          const el = document.getElementById('connectionStatus');
+          const dot = document.getElementById('statusDot');
 
-          if (isConnected) {
-            statusText.innerText = "Холбогдсон (Шууд горим)";
-            pingDot.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
-            statusDot.className = "relative inline-flex rounded-full h-3 w-3 bg-emerald-500";
+          if (connected) {
+            el.innerText = "Шууд холбогдсон";
+            el.className = "text-[10px] text-emerald-500 font-medium";
+            dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 status-pulse";
           } else {
-            statusText.innerText = "Холболт салсан...";
-            pingDot.className = "hidden";
-            statusDot.className = "relative inline-flex rounded-full h-3 w-3 bg-amber-500";
+            el.innerText = "Холболт салсан...";
+            el.className = "text-[10px] text-amber-500 font-medium";
+            dot.className = "w-2.5 h-2.5 rounded-full bg-amber-500";
           }
         });
 
-        // Listen for new transactions (Realtime WebSocket)
-        ordersRef.limitToLast(50).on("child_added", (snapshot) => {
-          const key = snapshot.key;
-          const data = snapshot.val();
+        // Realtime listener
+        ordersRef.limitToLast(200).on("child_added", snap => {
+          const key = snap.key;
+          const data = snap.val();
 
-          if (!transactions[key]) {
-            transactions[key] = data;
-            renderOrderCard(key, data, !isFirstLoad);
+          if (!allTransactions[key]) {
+            allTransactions[key] = data;
 
             if (!isFirstLoad) {
               playCashierChime();
+              showNewPaymentOverlay(data);
+              sendBrowserNotification(data);
             }
+
+            renderDatePills();
+            renderAllCards();
             updateSummary();
           }
         });
 
-        // Listen for updates (e.g. status changed to checked)
-        ordersRef.on("child_changed", (snapshot) => {
-          const key = snapshot.key;
-          const data = snapshot.val();
-          transactions[key] = data;
-          updateCardStatus(key, data.status);
+        ordersRef.on("child_changed", snap => {
+          const key = snap.key;
+          allTransactions[key] = snap.val();
+          renderAllCards();
+          updateSummary();
         });
 
-        // After initial data is populated
         ordersRef.once("value", () => {
           isFirstLoad = false;
+          renderDatePills();
+          renderAllCards();
+          updateSummary();
         });
 
       } catch (err) {
-        console.error("Firebase init error:", err);
+        console.error("Firebase error:", err);
         document.getElementById('connectionStatus').innerText = "Тохиргооны алдаа!";
       }
     }
 
-    // --- Render Card in UI ---
-    function renderOrderCard(key, data, isNew = false) {
-      const emptyState = document.getElementById('emptyState');
-      if (emptyState) emptyState.style.display = 'none';
-
+    // ═══════════════════════════════════════════
+    //  RENDER CARDS
+    // ═══════════════════════════════════════════
+    function renderAllCards() {
       const list = document.getElementById('ordersList');
+      list.innerHTML = '';
 
-      const card = document.createElement('div');
-      card.id = `order-${key}`;
-      card.className = `relative overflow-hidden bg-slate-800 border border-slate-700/80 rounded-2xl p-4 sm:p-5 transition shadow-lg ${isNew ? 'new-card-anim border-emerald-500/80' : ''}`;
+      // Get transactions for selected date
+      const entries = Object.entries(allTransactions)
+        .filter(([k, tx]) => {
+          const matchDate = getTransactionDate(tx) === selectedDate;
+          const matchTab = currentTab === 'all' ||
+            (currentTab === 'pending' && tx.status !== 'confirmed') ||
+            (currentTab === 'confirmed' && tx.status === 'confirmed');
+          return matchDate && matchTab;
+        })
+        .sort((a, b) => (b[1].timestamp || 0) - (a[1].timestamp || 0));
 
-      const amountFormatted = data.amount || '0';
-      const remark = data.remark || 'Тодорхойгүй';
-      const timeStr = data.timestamp ? new Date(data.timestamp).toLocaleTimeString('mn-MN', { hour: '2-digit', minute: '2-digit' }) : 'Дөнгөж сая';
-      const isConfirmed = data.status === 'confirmed';
+      if (entries.length === 0) {
+        list.innerHTML = `
+          <div class="text-center py-16 anim-fade">
+            <div class="text-3xl mb-3 opacity-40">${currentTab === 'confirmed' ? '✅' : currentTab === 'pending' ? '⏳' : '📭'}</div>
+            <p class="text-xs text-slate-600">${
+              currentTab === 'confirmed' ? 'Тулгасан гүйлгээ алга' :
+              currentTab === 'pending' ? 'Хүлээж буй гүйлгээ алга' :
+              selectedDate === todayStr() ? 'Өнөөдрийн гүйлгээ одоогоор алга' : 'Энэ өдөрт гүйлгээ алга'
+            }</p>
+          </div>`;
+        return;
+      }
 
-      card.innerHTML = `
-        <div class="flex items-start justify-between gap-4">
-          <div class="flex-1">
-            <div class="flex items-center gap-2 mb-1.5">
-              <span class="text-xs font-semibold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Орлого</span>
-              <span class="text-xs text-slate-400">🕒 ${timeStr}</span>
+      entries.forEach(([key, data], idx) => {
+        const card = document.createElement('div');
+        card.id = `order-${key}`;
+        card.style.animationDelay = `${idx * 0.03}s`;
+        card.style.opacity = '0';
+
+        const isConfirmed = data.status === 'confirmed';
+        const amount = data.amount || '0';
+        const remark = data.remark || '-';
+        const time = data.timestamp ? new Date(data.timestamp).toLocaleTimeString('mn-MN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-';
+
+        card.className = `order-card rounded-2xl p-4 anim-slide-up ${isConfirmed ? 'bg-surface-200' : 'bg-surface-300'}`;
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 flex-1 min-w-0">
+              <!-- Icon -->
+              <div class="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-lg ${isConfirmed ? 'bg-emerald-500/10' : 'bg-emerald-500/15'}">
+                ${isConfirmed ? '✅' : '💵'}
+              </div>
+              <!-- Info -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="text-base sm:text-lg font-extrabold ${isConfirmed ? 'text-slate-400' : 'text-emerald-400'} mono-num">₮${escapeHtml(amount)}</span>
+                  ${!isConfirmed ? '<span class="shrink-0 w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>' : ''}
+                </div>
+                <div class="text-xs text-slate-500 truncate mt-0.5">${escapeHtml(remark)}</div>
+              </div>
             </div>
-            <div class="text-2xl sm:text-3xl font-extrabold text-emerald-400 tracking-tight">
-              ₮${amountFormatted}
-            </div>
-            <div class="mt-2.5 flex items-start gap-1.5 text-sm sm:text-base text-slate-200">
-              <span class="text-slate-400 text-xs mt-0.5 font-medium">Утга:</span>
-              <span class="font-semibold text-white bg-slate-900/60 px-2 py-0.5 rounded border border-slate-700/50">${escapeHtml(remark)}</span>
+
+            <!-- Right Side -->
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="text-[10px] text-slate-600 font-medium hidden sm:block">${time}</span>
+              <button onclick="toggleConfirm('${key}')" class="px-3 py-1.5 rounded-xl text-[11px] font-bold transition ${
+                isConfirmed
+                  ? 'bg-white/5 text-slate-500 hover:bg-white/10'
+                  : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-900/20'
+              }">
+                ${isConfirmed ? 'Буцаах' : 'Тулгах'}
+              </button>
             </div>
           </div>
+          <div class="text-[10px] text-slate-600 mt-2 sm:hidden">${time}</div>
+        `;
 
-          <!-- Quick Action Button -->
-          <button id="btn-${key}" onclick="toggleConfirm('${key}')" class="shrink-0 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition ${isConfirmed ? 'bg-slate-700 text-slate-400' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-900/20'}">
-            <span>${isConfirmed ? '✓ Тулгасан' : 'Тулгах'}</span>
-          </button>
-        </div>
-      `;
-
-      // Prepend to show newest on top
-      list.insertBefore(card, list.firstChild);
+        list.appendChild(card);
+      });
     }
 
+    // ═══════════════════════════════════════════
+    //  SUMMARY UPDATE
+    // ═══════════════════════════════════════════
+    function updateSummary() {
+      const dayTx = Object.values(allTransactions).filter(tx => getTransactionDate(tx) === selectedDate);
+
+      let total = 0;
+      let confirmed = 0;
+      let pending = 0;
+
+      dayTx.forEach(tx => {
+        const num = parseFloat((tx.amount || '0').replace(/,/g, ''));
+        if (!isNaN(num)) total += num;
+        if (tx.status === 'confirmed') confirmed++;
+        else pending++;
+      });
+
+      document.getElementById('summaryCount').innerText = dayTx.length;
+      document.getElementById('summaryAmount').innerText = '₮' + total.toLocaleString('en-US');
+      document.getElementById('summaryConfirmed').innerText = confirmed;
+      document.getElementById('summaryPending').innerText = pending;
+      document.getElementById('summaryDateLabel').innerText = formatDateLabel(selectedDate);
+    }
+
+    // ═══════════════════════════════════════════
+    //  CONFIRM / UNCONFIRM
+    // ═══════════════════════════════════════════
     function toggleConfirm(key) {
-      const current = transactions[key]?.status;
+      const current = allTransactions[key]?.status;
       const newStatus = current === 'confirmed' ? 'new' : 'confirmed';
       try {
         firebase.database().ref(`branch2_orders/${key}`).update({ status: newStatus });
-      } catch (e) {
-        console.error("Failed to update status", e);
-      }
+      } catch (e) { console.error("Update failed", e); }
     }
 
-    function updateCardStatus(key, status) {
-      const btn = document.getElementById(`btn-${key}`);
-      if (!btn) return;
-      if (status === 'confirmed') {
-        btn.className = "shrink-0 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition bg-slate-700 text-slate-400";
-        btn.innerHTML = '<span>✓ Тулгасан</span>';
-      } else {
-        btn.className = "shrink-0 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-900/20";
-        btn.innerHTML = '<span>Тулгах</span>';
-      }
+    // ═══════════════════════════════════════════
+    //  NEW PAYMENT OVERLAY
+    // ═══════════════════════════════════════════
+    function showNewPaymentOverlay(data) {
+      const overlay = document.getElementById('newPaymentOverlay');
+      document.getElementById('overlayAmount').innerText = '₮' + (data.amount || '0');
+      document.getElementById('overlayRemark').innerText = data.remark || '-';
+      overlay.style.display = 'flex';
+      overlay.classList.remove('hidden');
+
+      // Auto-dismiss after 6 seconds
+      setTimeout(dismissOverlay, 6000);
     }
 
-    function updateSummary() {
-      const keys = Object.keys(transactions);
-      let totalAmount = 0;
-
-      keys.forEach(k => {
-        const item = transactions[k];
-        const num = parseFloat((item.amount || '0').replace(/,/g, ''));
-        if (!isNaN(num)) totalAmount += num;
-      });
-
-      document.getElementById('summaryCount').innerText = keys.length;
-      document.getElementById('summaryAmount').innerText = '₮' + totalAmount.toLocaleString('en-US');
-
-      if (keys.length > 0) {
-        const latest = transactions[keys[keys.length - 1]];
-        if (latest && latest.timestamp) {
-          document.getElementById('lastTxTime').innerText = new Date(latest.timestamp).toLocaleTimeString('mn-MN', { hour: '2-digit', minute: '2-digit' });
-        }
-      }
+    function dismissOverlay() {
+      const overlay = document.getElementById('newPaymentOverlay');
+      overlay.style.display = 'none';
+      overlay.classList.add('hidden');
     }
 
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.innerText = text;
-      return div.innerHTML;
-    }
-
-    // --- Modal Handlers ---
+    // ═══════════════════════════════════════════
+    //  MODAL HANDLERS
+    // ═══════════════════════════════════════════
     function openConfigModal() {
-      document.getElementById('cfgDbUrl').value = DEFAULT_CONFIG.databaseURL;
-      document.getElementById('cfgProjectId').value = DEFAULT_CONFIG.projectId;
-      document.getElementById('configModal').classList.remove('hidden');
+      document.getElementById('cfgDbUrl').value = CONFIG.databaseURL;
+      document.getElementById('cfgProjectId').value = CONFIG.projectId;
+      const modal = document.getElementById('configModal');
+      modal.style.display = 'flex';
+      modal.classList.remove('hidden');
     }
 
     function closeConfigModal() {
-      document.getElementById('configModal').classList.add('hidden');
+      const modal = document.getElementById('configModal');
+      modal.style.display = 'none';
+      modal.classList.add('hidden');
     }
 
     function saveConfig() {
@@ -383,19 +635,129 @@
       }
     }
 
-    // User interaction enables audio playback on modern iOS/Android browsers
-    document.addEventListener('click', function unlockAudio() {
-      if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioContext.state === 'suspended') {
-        audioContext.resume();
-      }
-      document.removeEventListener('click', unlockAudio);
+    // ═══════════════════════════════════════════
+    //  UTILITIES
+    // ═══════════════════════════════════════════
+    function escapeHtml(text) {
+      const d = document.createElement('div');
+      d.innerText = text;
+      return d.innerHTML;
+    }
+
+    // Unlock audio on first user touch (iOS/Android requirement)
+    document.addEventListener('click', function unlock() {
+      if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioContext.state === 'suspended') audioContext.resume();
+      document.removeEventListener('click', unlock);
     }, { once: true });
 
-    // Initialize on page load
-    window.addEventListener('DOMContentLoaded', initFirebase);
+    // ═══════════════════════════════════════════
+    //  BROWSER PUSH NOTIFICATIONS
+    // ═══════════════════════════════════════════
+    let notifPermission = Notification?.permission || 'default';
+
+    function checkNotifSupport() {
+      return ('Notification' in window);
+    }
+
+    function updateNotifUI() {
+      const btn = document.getElementById('notifBtn');
+      const banner = document.getElementById('notifBanner');
+
+      if (!checkNotifSupport()) {
+        // Browser doesn't support notifications
+        if (btn) btn.style.display = 'none';
+        if (banner) banner.classList.add('hidden');
+        return;
+      }
+
+      notifPermission = Notification.permission;
+
+      if (notifPermission === 'granted') {
+        // Notifications enabled
+        if (btn) btn.innerText = '🔔';
+        if (btn) btn.title = 'Мэдэгдэл: Идэвхтэй';
+        if (banner) banner.classList.add('hidden');
+      } else if (notifPermission === 'denied') {
+        // User blocked notifications
+        if (btn) btn.innerText = '🚫';
+        if (btn) btn.title = 'Мэдэгдэл: Хориглосон (Хөтчийн тохиргоогоор нээнэ үү)';
+        if (banner) banner.classList.add('hidden');
+      } else {
+        // Not yet asked — show banner
+        if (btn) btn.innerText = '📳';
+        if (btn) btn.title = 'Мэдэгдэл зөвшөөрөх';
+        if (banner) banner.classList.remove('hidden');
+      }
+    }
+
+    async function requestNotifPermission() {
+      if (!checkNotifSupport()) {
+        alert('Энэ хөтөч мэдэгдлийг дэмжихгүй байна.');
+        return;
+      }
+
+      try {
+        const result = await Notification.requestPermission();
+        notifPermission = result;
+        updateNotifUI();
+
+        if (result === 'granted') {
+          // Send a test notification
+          new Notification('✅ Мэдэгдэл идэвхжлээ!', {
+            body: 'Шинэ шилжүүлэг ирэхэд танд мэдэгдэл ирнэ.',
+            icon: '💰',
+            tag: 'test-notif',
+            silent: false
+          });
+        } else if (result === 'denied') {
+          alert('Мэдэгдэл хориглогдсон байна.\n\nХөтчийн тохиргоо (🔒 хаягийн мөр) дээр дарж "Мэдэгдэл"-ийг зөвшөөрнө үү.');
+        }
+      } catch (e) {
+        console.error('Notification permission error:', e);
+      }
+    }
+
+    function sendBrowserNotification(data) {
+      // Only send when tab is NOT focused (background/minimized)
+      if (document.hasFocus()) return;
+      if (notifPermission !== 'granted') return;
+
+      const amount = data.amount || '0';
+      const remark = data.remark || '';
+
+      try {
+        const notif = new Notification('💰 Шинэ орлого — Салбар 2', {
+          body: `₮${amount}\n${remark}`,
+          icon: '💰',
+          badge: '💰',
+          tag: 'payment-' + Date.now(),
+          requireInteraction: true,   // Stays visible until tapped
+          vibrate: [200, 100, 200],   // Vibrate pattern for Android
+          silent: false
+        });
+
+        // When cashier taps the notification, bring the app to focus
+        notif.onclick = function () {
+          window.focus();
+          notif.close();
+        };
+
+        // Auto-close after 30 seconds
+        setTimeout(() => notif.close(), 30000);
+      } catch (e) {
+        console.warn('Notification failed:', e);
+      }
+    }
+
+    // ═══════════════════════════════════════════
+    //  INIT
+    // ═══════════════════════════════════════════
+    window.addEventListener('DOMContentLoaded', () => {
+      updateNotifUI();
+      renderDatePills();
+      initFirebase();
+    });
   </script>
 </body>
 </html>
